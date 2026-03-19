@@ -6,9 +6,11 @@ import {
   UserCircle,
   Monitor,
   Brain,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth, ROLE_ROUTES } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -19,22 +21,29 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Historia Clínica", url: "/historia-clinica", icon: FileText },
-  { title: "Agenda Médica", url: "/agenda", icon: CalendarDays },
-  { title: "Telemedicina", url: "/telemedicina", icon: Video },
-  { title: "Portal Paciente", url: "/portal-paciente", icon: UserCircle },
-  { title: "Sala de Espera", url: "/sala-espera", icon: Monitor },
-];
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "/dashboard": LayoutDashboard,
+  "/historia-clinica": FileText,
+  "/agenda": CalendarDays,
+  "/telemedicina": Video,
+  "/portal-paciente": UserCircle,
+  "/sala-espera": Monitor,
+};
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  if (!user) return null;
+
+  const routes = ROLE_ROUTES[user.role];
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -46,10 +55,10 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-display text-sm font-bold text-sidebar-primary-foreground">
-                NeuroCare 360
+                Neuro Care 360
               </span>
               <span className="text-[11px] text-sidebar-foreground/60">
-                Neurotrauma Center
+                {user.name}
               </span>
             </div>
           )}
@@ -62,26 +71,23 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => {
-                const isActive =
-                  item.url === "/"
-                    ? location.pathname === "/"
-                    : location.pathname.startsWith(item.url);
+              {routes.map((item) => {
+                const Icon = iconMap[item.path] || LayoutDashboard;
+                const isActive = location.pathname.startsWith(item.path);
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
-                      tooltip={item.title}
+                      tooltip={item.label}
                     >
                       <NavLink
-                        to={item.url}
-                        end={item.url === "/"}
+                        to={item.path}
                         className="transition-colors"
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.label}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -91,6 +97,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Cerrar sesión"
+              onClick={() => { logout(); navigate("/"); }}
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Cerrar sesión</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
